@@ -1,0 +1,261 @@
+/* Shopping Item Component Styles */
+.shopping-item {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #E2E8F0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.shopping-item:hover {
+  border-color: #CBD5E0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.shopping-item.completed {
+  background-color: #F7FAFC;
+  opacity: 0.8;
+}
+
+.shopping-item.completed .item-name {
+  text-decoration: line-through;
+  color: #718096;
+}
+
+.shopping-item.editing {
+  background-color: #F0FFF4;
+  border-color: var(--primary-green, #38a169);
+}
+
+/* Item Main Content */
+.item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.item-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #CBD5E0;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.item-checkbox:hover {
+  border-color: var(--primary-green, #38a169);
+}
+
+.item-checkbox.checked {
+  background-color: var(--primary-green, #38a169);
+  border-color: var(--primary-green, #38a169);
+  color: white;
+}
+
+.item-details {
+  flex: 1;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.item-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #2D3748);
+  margin: 0;
+  flex: 1;
+}
+
+.item-priority {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.item-priority.priority-high {
+  background-color: #EF4444;
+}
+
+.item-priority.priority-medium {
+  background-color: #F59E0B;
+}
+
+.item-priority.priority-low {
+  background-color: #10B981;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+
+.item-quantity {
+  font-weight: 500;
+}
+
+.item-category {
+  background-color: #EDF2F7;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.item-price {
+  font-weight: 600;
+  color: var(--primary-green, #38a169);
+}
+
+.item-notes {
+  font-size: 0.875rem;
+  color: #4A5568;
+  margin: 0.5rem 0 0 0;
+  font-style: italic;
+}
+
+/* Item Actions */
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background-color: #EBF8FF;
+  color: #3182CE;
+}
+
+.edit-btn:hover {
+  background-color: #BEE3F8;
+}
+
+.delete-btn {
+  background-color: #FED7D7;
+  color: #E53E3E;
+}
+
+.delete-btn:hover {
+  background-color: #FEB2B2;
+}
+
+/* Edit Form */
+.item-edit-form {
+  width: 100%;
+}
+
+.edit-name {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.edit-row {
+  display: grid;
+  grid-template-columns: 80px 100px 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.edit-quantity,
+.edit-unit,
+.edit-price {
+  padding: 0.5rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.edit-notes {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #CBD5E0;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.edit-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .shopping-item {
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .item-main {
+    width: 100%;
+  }
+  
+  .item-actions {
+    align-self: flex-end;
+    margin-top: 0.5rem;
+  }
+  
+  .item-meta {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .edit-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .edit-actions {
+    justify-content: stretch;
+  }
+  
+  .edit-actions button {
+    flex: 1;
+  }
+}

@@ -1,0 +1,6 @@
+// Profile Tab
+import ProfileScreen from "../../src/screens/ProfileScreen";
+
+export default function ProfileTab() {
+  return <ProfileScreen />;
+}
