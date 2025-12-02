@@ -48,6 +48,7 @@ export const useShoppingList = (userId: string, listId?: string) => {
         id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         listId: listId || '',
         isCompleted: false,
+        isFavorite: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         priority: itemData.priority ?? 'medium',

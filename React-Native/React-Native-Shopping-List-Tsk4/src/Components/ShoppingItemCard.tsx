@@ -15,6 +15,7 @@ interface ShoppingItemCardProps {
   onToggle: () => void;
   onDelete: () => void;
   onEdit?: () => void;
+  onFavorite?: () => void;
 }
 
 const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
@@ -22,6 +23,7 @@ const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
   onToggle,
   onDelete,
   onEdit,
+  onFavorite,
 }) => {
   const priorityColor = PRIORITY_COLORS[item.priority] || COLORS.warning;
   const totalPrice = item.price * item.quantity;
@@ -43,6 +45,13 @@ const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
           <Ionicons name="checkmark" size={16} color={COLORS.white} />
         )}
       </TouchableOpacity>
+
+      {/* Favorite Indicator */}
+      {item.isFavorite && (
+        <View style={styles.favoriteIndicator}>
+          <Ionicons name="heart" size={12} color={COLORS.error} />
+        </View>
+      )}
 
       {/* Content */}
       <View style={styles.content}>
@@ -87,6 +96,18 @@ const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
 
       {/* Actions */}
       <View style={styles.actions}>
+        {onFavorite && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={onFavorite}
+          >
+            <Ionicons 
+              name={item.isFavorite ? "heart" : "heart-outline"} 
+              size={18} 
+              color={item.isFavorite ? COLORS.error : COLORS.textSecondary} 
+            />
+          </TouchableOpacity>
+        )}
         {onEdit && (
           <TouchableOpacity
             style={styles.actionButton}
@@ -121,6 +142,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     overflow: 'hidden',
+  },
+  favoriteIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   priorityIndicator: {
     position: 'absolute',

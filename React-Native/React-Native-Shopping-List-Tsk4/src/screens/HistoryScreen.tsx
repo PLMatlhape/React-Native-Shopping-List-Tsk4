@@ -1,4 +1,4 @@
-// History Screen for React Native
+// History Screen with Redux integration
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,89 +12,61 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../constants';
-import { storageService } from '../services/storageService';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import {
+    loadHistory,
+    selectFilteredHistory,
+    selectHistoryStats,
+    setFilterAction,
+} from '../store/slices/historySlice';
 import type { DailyHistory, HistoryItem } from '../types';
 
 const HistoryScreen: React.FC = () => {
-  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<DailyHistory[]>([]);
-  const [filterAction, setFilterAction] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const dispatch = useAppDispatch();
+  
+  const user = useAppSelector((state) => state.auth.user);
+  const filterAction = useAppSelector((state) => state.history.filterAction);
+  const filteredHistory = useAppSelector(selectFilteredHistory);
+  const stats = useAppSelector(selectHistoryStats);
+  const loading = useAppSelector((state) => state.history.loading);
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [displayHistory, setDisplayHistory] = useState<DailyHistory[]>([]);
 
-  // Load history from storage
-  const loadHistory = useCallback(async () => {
-    const saved = await storageService.getItem<HistoryItem[]>('shoppingHistory');
-    if (saved) {
-      setHistoryData(saved);
-    }
-  }, []);
-
+  // Load history on mount
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+    if (user?.id) {
+      dispatch(loadHistory(user.id));
+    }
+  }, [dispatch, user?.id]);
 
-  // Group history by date and apply filters
+  // Apply search filter on top of Redux filtered history
   useEffect(() => {
-    const groupedByDate = historyData.reduce((acc: { [key: string]: HistoryItem[] }, item) => {
-      if (!acc[item.date]) {
-        acc[item.date] = [];
-      }
-      acc[item.date].push(item);
-      return acc;
-    }, {});
-
-    let dailyHistories: DailyHistory[] = Object.entries(groupedByDate).map(([date, items]) => {
-      const addedItems = items.filter((item: HistoryItem) => item.action === 'added');
-      const purchasedItems = items.filter((item: HistoryItem) => item.action === 'purchased');
-      const removedItems = items.filter((item: HistoryItem) => item.action === 'removed');
-
-      return {
-        date,
-        items,
-        totalAdded: addedItems.length,
-        totalPurchased: purchasedItems.length,
-        totalSpent: purchasedItems.reduce((sum: number, item: HistoryItem) => {
-          const price = typeof item.price === 'number' && !isNaN(item.price) ? item.price : 0;
-          const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
-          return sum + (price * quantity);
-        }, 0),
-        itemsAdded: addedItems.length,
-        itemsPurchased: purchasedItems.length,
-        itemsRemoved: removedItems.length,
-      };
-    });
-
-    // Sort by date (newest first)
-    dailyHistories.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    // Apply filters
-    if (filterAction !== 'all') {
-      dailyHistories = dailyHistories.map(day => ({
-        ...day,
-        items: day.items.filter((item: HistoryItem) => item.action === filterAction)
-      })).filter(day => day.items.length > 0);
+    if (!searchTerm) {
+      setDisplayHistory(filteredHistory);
+    } else {
+      const filtered = filteredHistory
+        .map((day) => ({
+          ...day,
+          items: day.items.filter(
+            (item) =>
+              item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.category.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+        }))
+        .filter((day) => day.items.length > 0);
+      setDisplayHistory(filtered);
     }
-
-    if (searchTerm) {
-      dailyHistories = dailyHistories.map(day => ({
-        ...day,
-        items: day.items.filter((item: HistoryItem) =>
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      })).filter(day => day.items.length > 0);
-    }
-
-    setFilteredHistory(dailyHistories);
-  }, [historyData, filterAction, searchTerm]);
+  }, [filteredHistory, searchTerm]);
 
   // Refresh handler
   const onRefresh = useCallback(async () => {
+    if (!user?.id) return;
     setRefreshing(true);
-    await loadHistory();
+    await dispatch(loadHistory(user.id));
     setRefreshing(false);
-  }, [loadHistory]);
+  }, [dispatch, user?.id]);
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -112,7 +84,7 @@ const HistoryScreen: React.FC = () => {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
     }
   };
@@ -121,7 +93,7 @@ const HistoryScreen: React.FC = () => {
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -129,56 +101,68 @@ const HistoryScreen: React.FC = () => {
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'added':
-        return <Ionicons name="add-circle" size={20} color={COLORS.primary} />;
+        return <Ionicons name="add-circle" size={24} color={COLORS.primary} />;
       case 'purchased':
-        return <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />;
+        return <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />;
       case 'removed':
-        return <Ionicons name="remove-circle" size={20} color={COLORS.error} />;
+        return <Ionicons name="remove-circle" size={24} color={COLORS.error} />;
       default:
-        return null;
+        return <Ionicons name="ellipse" size={24} color={COLORS.textSecondary} />;
     }
   };
 
-  // Get action label
-  const getActionLabel = (action: string) => {
+  // Get action color
+  const getActionColor = (action: string) => {
     switch (action) {
       case 'added':
-        return 'Added to list';
+        return COLORS.primary;
       case 'purchased':
-        return 'Purchased';
+        return COLORS.success;
       case 'removed':
-        return 'Removed';
+        return COLORS.error;
       default:
-        return action;
+        return COLORS.textSecondary;
     }
   };
 
-  // Calculate totals
-  const totalSpent = filteredHistory.reduce((sum, day) => sum + day.totalSpent, 0);
-  const totalItems = filteredHistory.reduce((sum, day) => sum + day.totalPurchased, 0);
-
-  const filterButtons = [
-    { value: 'all', label: 'All' },
-    { value: 'added', label: 'Added' },
-    { value: 'purchased', label: 'Purchased' },
-    { value: 'removed', label: 'Removed' },
+  const filterButtons: { value: 'all' | 'added' | 'purchased' | 'removed'; label: string; icon: string }[] = [
+    { value: 'all', label: 'All', icon: 'list' },
+    { value: 'added', label: 'Added', icon: 'add-circle' },
+    { value: 'purchased', label: 'Purchased', icon: 'checkmark-circle' },
+    { value: 'removed', label: 'Removed', icon: 'remove-circle' },
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTitle}>
-          <Ionicons name="time" size={24} color={COLORS.primary} />
-          <Text style={styles.title}>Shopping History</Text>
-        </View>
-        <View style={styles.headerStats}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{totalItems}</Text>
-            <Text style={styles.statLabel}>Items</Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerTitle}>
+            <Ionicons name="time" size={28} color={COLORS.primary} />
+            <Text style={styles.title}>Shopping History</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>R{totalSpent.toFixed(2)}</Text>
+        </View>
+
+        {/* Stats Cards */}
+        <View style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: COLORS.primary + '15' }]}>
+            <Ionicons name="add-circle" size={24} color={COLORS.primary} />
+            <Text style={styles.statNumber}>{stats.totalAdded}</Text>
+            <Text style={styles.statLabel}>Added</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: COLORS.success + '15' }]}>
+            <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+            <Text style={styles.statNumber}>{stats.totalPurchased}</Text>
+            <Text style={styles.statLabel}>Purchased</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: COLORS.error + '15' }]}>
+            <Ionicons name="remove-circle" size={24} color={COLORS.error} />
+            <Text style={styles.statNumber}>{stats.totalRemoved}</Text>
+            <Text style={styles.statLabel}>Removed</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: COLORS.accent + '15' }]}>
+            <Ionicons name="wallet" size={24} color={COLORS.accent} />
+            <Text style={styles.statNumber}>R{stats.totalSpent.toFixed(0)}</Text>
             <Text style={styles.statLabel}>Spent</Text>
           </View>
         </View>
@@ -203,20 +187,27 @@ const HistoryScreen: React.FC = () => {
 
       {/* Filters */}
       <View style={styles.filters}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
           {filterButtons.map((button) => (
             <TouchableOpacity
               key={button.value}
               style={[
                 styles.filterButton,
-                filterAction === button.value && styles.filterButtonActive
+                filterAction === button.value && styles.filterButtonActive,
               ]}
-              onPress={() => setFilterAction(button.value)}
+              onPress={() => dispatch(setFilterAction(button.value))}
             >
-              <Text style={[
-                styles.filterButtonText,
-                filterAction === button.value && styles.filterButtonTextActive
-              ]}>
+              <Ionicons
+                name={button.icon as any}
+                size={16}
+                color={filterAction === button.value ? COLORS.white : COLORS.text}
+              />
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  filterAction === button.value && styles.filterButtonTextActive,
+                ]}
+              >
                 {button.label}
               </Text>
             </TouchableOpacity>
@@ -227,49 +218,89 @@ const HistoryScreen: React.FC = () => {
       {/* History List */}
       <ScrollView
         style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+          />
         }
       >
-        {filteredHistory.length === 0 ? (
+        {loading && displayHistory.length === 0 ? (
+          <View style={styles.loadingState}>
+            <Text style={styles.loadingText}>Loading history...</Text>
+          </View>
+        ) : displayHistory.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color={COLORS.textLight} />
+            <View style={styles.emptyStateIconContainer}>
+              <Ionicons name="document-text-outline" size={64} color={COLORS.textLight} />
+            </View>
             <Text style={styles.emptyStateTitle}>No history yet</Text>
             <Text style={styles.emptyStateSubtitle}>
-              Your shopping activity will appear here
+              Your shopping activity will appear here.
+            </Text>
+            <Text style={styles.emptyStateHint}>
+              Add items to your list, purchase them, or remove them to see history.
             </Text>
           </View>
         ) : (
-          filteredHistory.map((day) => (
+          displayHistory.map((day) => (
             <View key={day.date} style={styles.daySection}>
+              {/* Day Header */}
               <View style={styles.dayHeader}>
-                <Text style={styles.dayDate}>{formatDate(day.date)}</Text>
-                <Text style={styles.daySummary}>
-                  {day.totalPurchased} purchased · R{day.totalSpent.toFixed(2)}
-                </Text>
+                <View style={styles.dayHeaderLeft}>
+                  <Ionicons name="calendar" size={18} color={COLORS.primary} />
+                  <Text style={styles.dayDate}>{formatDate(day.date)}</Text>
+                </View>
+                <View style={styles.dayStats}>
+                  <View style={styles.dayStatItem}>
+                    <Ionicons name="checkmark" size={14} color={COLORS.success} />
+                    <Text style={styles.dayStatText}>{day.itemsPurchased}</Text>
+                  </View>
+                  <Text style={styles.daySummary}>R{day.totalSpent.toFixed(2)}</Text>
+                </View>
               </View>
+
+              {/* Day Items */}
               {day.items.map((item: HistoryItem) => (
                 <View key={item.id} style={styles.historyItem}>
-                  <View style={styles.historyItemIcon}>
-                    {getActionIcon(item.action)}
-                  </View>
+                  <View style={styles.historyItemIcon}>{getActionIcon(item.action)}</View>
                   <View style={styles.historyItemContent}>
-                    <Text style={styles.historyItemName}>{item.name}</Text>
+                    <View style={styles.historyItemHeader}>
+                      <Text style={styles.historyItemName}>{item.name}</Text>
+                      <View
+                        style={[
+                          styles.actionBadge,
+                          { backgroundColor: getActionColor(item.action) + '15' },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.actionBadgeText, { color: getActionColor(item.action) }]}
+                        >
+                          {item.action}
+                        </Text>
+                      </View>
+                    </View>
                     <Text style={styles.historyItemDetails}>
                       {item.quantity} {item.unit} · {item.category}
                     </Text>
-                    <Text style={styles.historyItemAction}>
-                      {getActionLabel(item.action)} at {formatTime(item.timestamp)}
-                    </Text>
+                    <View style={styles.historyItemFooter}>
+                      <Text style={styles.historyItemTime}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.textLight} />{' '}
+                        {formatTime(item.timestamp)}
+                      </Text>
+                      <Text style={styles.historyItemPrice}>
+                        R{(item.price * item.quantity).toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.historyItemPrice}>
-                    R{(item.price * item.quantity).toFixed(2)}
-                  </Text>
                 </View>
               ))}
             </View>
           ))
         )}
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -282,14 +313,18 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.white,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  headerTop: {
+    marginBottom: 16,
   },
   headerTitle: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -297,31 +332,44 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginLeft: 12,
   },
-  headerStats: {
+  statsContainer: {
     flexDirection: 'row',
-    gap: 24,
+    justifyContent: 'space-between',
   },
-  statItem: {
-    alignItems: 'flex-start',
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
+    marginTop: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textSecondary,
+    marginTop: 2,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
     marginHorizontal: 20,
-    marginVertical: 12,
+    marginTop: 16,
+    marginBottom: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   searchInput: {
     flex: 1,
@@ -330,104 +378,195 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   filters: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  filtersContent: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
   filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: COLORS.white,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   filterButtonActive: {
     backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   filterButtonText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    fontWeight: '500',
+    color: COLORS.text,
+    marginLeft: 6,
   },
   filterButtonTextActive: {
     color: COLORS.white,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
+  loadingState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
   emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
+  emptyStateIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: COLORS.text,
-    marginTop: 16,
+    marginBottom: 8,
   },
   emptyStateSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.textSecondary,
-    marginTop: 8,
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyStateHint: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   daySection: {
-    marginBottom: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   dayHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.background,
+    padding: 16,
+    backgroundColor: COLORS.primary + '08',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dayHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dayDate: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+    marginLeft: 8,
+  },
+  dayStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dayStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  dayStatText: {
+    fontSize: 14,
+    color: COLORS.success,
+    marginLeft: 4,
   },
   daySummary: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   historyItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   historyItemIcon: {
     marginRight: 12,
+    marginTop: 2,
   },
   historyItemContent: {
     flex: 1,
   },
+  historyItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   historyItemName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.text,
+    flex: 1,
+  },
+  actionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  actionBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   historyItemDetails: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginBottom: 6,
   },
-  historyItemAction: {
-    fontSize: 11,
+  historyItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyItemTime: {
+    fontSize: 12,
     color: COLORS.textLight,
-    marginTop: 4,
   },
   historyItemPrice: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  bottomPadding: {
+    height: 100,
   },
 });
 

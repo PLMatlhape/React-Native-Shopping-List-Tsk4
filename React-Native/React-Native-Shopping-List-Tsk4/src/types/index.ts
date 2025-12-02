@@ -9,12 +9,16 @@ export interface ShoppingItem {
   price: number;
   category: string;
   isCompleted: boolean;
+  isFavorite: boolean;
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   image?: string;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string;
 }
+
+export type FilterType = 'all' | 'completed' | 'pending' | 'high' | 'favorites';
 
 export interface ShoppingList {
   id: string;

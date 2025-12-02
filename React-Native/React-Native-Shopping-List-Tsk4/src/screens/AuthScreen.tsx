@@ -17,7 +17,8 @@ import {
     View
 } from 'react-native';
 import { APP_LOGO, COLORS } from '../constants';
-import { useAuth } from '../context/AuthContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { signIn as signInAction, signUp as signUpAction } from '../store/slices/authSlice';
 import type { SignInFormData, SignUpFormData } from '../types';
 
 // Get screen dimensions for responsive design
@@ -25,7 +26,8 @@ Dimensions.get('window');
 
 const AuthScreen: React.FC = () => {
   const router = useRouter();
-  const { signUp, signIn, loading } = useAuth();
+  const dispatch = useAppDispatch();
+  const { loading } = useAppSelector((state) => state.auth);
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,10 +49,10 @@ const AuthScreen: React.FC = () => {
   });
 
   const handleSignUp = async () => {
-    const result = await signUp(signUpData);
-    
-    if (result.success) {
-      setMessage({ type: 'success', text: result.message });
+    try {
+      await dispatch(signUpAction(signUpData)).unwrap();
+      setMessage({ type: 'success', text: 'Account created successfully!' });
+      
       // Auto-fill login with registered email
       setSignInData(prev => ({ ...prev, email: signUpData.email }));
       // Clear sign up form
@@ -66,21 +68,20 @@ const AuthScreen: React.FC = () => {
         setIsSignUp(false);
         setMessage(null);
       }, 1500);
-    } else {
-      setMessage({ type: 'error', text: result.message });
+    } catch (err) {
+      setMessage({ type: 'error', text: err as string || 'Failed to create account' });
     }
   };
 
   const handleSignIn = async () => {
-    const result = await signIn(signInData);
-    
-    if (result.success) {
-      setMessage({ type: 'success', text: result.message });
+    try {
+      await dispatch(signInAction(signInData)).unwrap();
+      setMessage({ type: 'success', text: 'Login successful!' });
       setTimeout(() => {
         router.replace('/(tabs)/dashboard');
       }, 500);
-    } else {
-      setMessage({ type: 'error', text: result.message });
+    } catch (err) {
+      setMessage({ type: 'error', text: err as string || 'Login failed' });
     }
   };
 
