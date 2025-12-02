@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap');
+
+/* Scoped reset for navbar only - removed global * selector */
+
+header {
+    padding: 0;
+    background: transparent;
+    position: sticky;
+    width: 100vw;
+    top: 0;
+    z-index: 1000;
+    box-shadow: none;
+    margin: 0;
+    left: 0;
+    right: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0.8rem 5rem !important;
+    font-family: 'Montserrat', sans-serif;
+    height: 60px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #2d3748);
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.logo.clickable {
+    cursor: pointer;
+}
+
+.logo.clickable:hover {
+    color: var(--primary-green, #38a169);
+}
+
+.logo::before {
+    display: none;
+}
+
+.logo img {
+    width: 78px;
+    height: 78px;
+    object-fit: contain;
+    margin: 0; /* Ensure no unwanted margins */
+}
+
+/* Mobile First: Nav Links Hidden by Default */
+.nav-links {
+    display: none;
+    list-style: none;
+    align-items: center;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+/* Show nav links when mobile menu is active */
+.nav-links.active {
+    display: flex;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #4A5568;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    position: relative;
+    padding: 0.5rem 2rem;
+    border-radius: 6px;
+    display: block;
+}
+
+.nav-links a:hover {
+    color: #38a169;
+}
+
+.nav-links a.active {
+    color: #38a169;
+    border: 2px solid #38a169;
+    background: rgba(56, 161, 105, 0.1);
+}
+
+/* Dashboard button in nav */
+.nav-dashboard-btn {
+    background: none;
+    border: none;
+    color: #2D3748;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-dashboard-btn:hover {
+    color: #38a169;
+    background: rgba(56, 161, 105, 0.1);
+}
+
+/* SignUp button uses global .btn-primary styles with responsive sizing */
+.signup-btn {
+    font-size: 0.9rem;
+}
+
+/* Mobile menu button - visible by default (mobile first) */
+.mobile-menu-btn {
+    display: block;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: #38a169;
+    padding: 4px;
+}
+
+/* Mobile First Responsive Design */
+
+/* Small Mobile (480px+) */
+@media (min-width: 480px) {
+    .logo {
+        font-size: 1.2rem;
+    }
+    
+    .logo img {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+/* Large Mobile (640px+) */
+@media (min-width: 640px) {
+    nav {
+        padding: 0 5rem !important;
+    }
+
+    .logo {
+        font-size: 1.3rem;
+    }
+
+    .signup-btn {
+        font-size: 0.95rem;
+        padding: 10px 20px;
+    }
+}
+
+/* Tablet (768px+) - Desktop Navigation */
+@media (min-width: 768px) {
+    .nav-links {
+        display: flex !important;
+        position: static;
+        background: transparent;
+        padding: 0;
+        flex-direction: row;
+        gap: 2.5rem;
+        box-shadow: none;
+        flex: 0;
+        justify-content: flex-end;
+        margin: 0;
+        margin-left: auto;
+        margin-right: 2rem;
+        z-index: auto;
+    }
+
+    .nav-links li:last-child {
+        margin-left: 3rem;
+    }
+
+    .nav-links a {
+        display: inline;
+        padding: 4px 10px;
+        font-size: 0.9rem;
+    }
+
+    .mobile-menu-btn {
+        display: none !important;
+    }
+
+    .logo {
+        font-size: 1.2rem;
+    }
+
+    .signup-btn {
+        padding: 8px 18px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Laptop (1024px+) */
+@media (min-width: 1024px) {
+    nav {
+        height: 60px;
+    }
+}
+
+/* Desktop (1200px+) */
+@media (min-width: 1200px) {
+    nav {
+        padding: 0 5rem !important;
+    }
+}
